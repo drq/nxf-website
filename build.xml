@@ -1,0 +1,103 @@
+<?xml version='1.0'?>
+<project name="NXF Website" basedir="." default="update">
+
+    <property file="custom-build.properties"/>
+
+    <property file="build.properties"/>
+
+    <property name="project.dir" value="."/>
+
+    <property name="build.dir" value="${project.dir}/build"/>
+
+    <target name="clean" description="Removes all generated files">
+        <delete dir="${build.dir}"/>
+    </target>
+
+    <target name="clean-local-deployment">
+        <mkdir dir="${local.deployment.basepath}/${app.key}"/>
+        <delete>
+            <fileset dir="${local.deployment.basepath}/${app.key}" includes="**/*"/>
+        </delete>
+    </target>
+
+    <target name="setup" description="Creates all required directories" depends="clean">
+        <mkdir dir="${build.dir}"/>
+    </target>
+
+    <fileset dir="${project.dir}" id="website-files">
+        <include name="css/**/*"/>
+        <include name="img/**/*"/>
+        <include name="js/**/*"/>
+        <include name="lib/**/*"/>
+        <include name="actions/**/*"/>
+        <include name="*.html"/>
+        <include name="*.txt"/>
+        <include name="favicon.ico"/>
+    </fileset>
+
+    <fileset dir="${build.dir}" id="build-website-files">
+        <include name="css/**/*"/>
+        <include name="img/**/*"/>
+        <include name="js/**/*"/>
+        <include name="lib/**/*"/>
+        <include name="actions/**/*"/>
+        <include name="*.html"/>
+        <include name="*.txt"/>
+        <include name="favicon.ico"/>
+    </fileset>
+
+    <target name="full" depends="clean-local-deployment">
+        <copy todir="${local.deployment.basepath}/${app.key}">
+            <fileset refid="website-files"/>
+        </copy>
+    </target>
+
+    <target name="update" depends="">
+        <copy todir="${local.deployment.basepath}/${app.key}">
+            <fileset refid="website-files"/>
+        </copy>
+    </target>
+
+    <target name="unpublish" description="Remove web files from remote server">
+        <ftp server="${ftp.server}"
+             userid="${ftp.user}"
+             password="${ftp.password}"
+             remotedir="${remote.dir}"
+             action="del">
+            <fileset>
+                <include name="**/*"/>
+            </fileset>
+        </ftp>
+    </target>
+
+    <target name="publish" description="Publish web files to remote server" depends="setup">
+
+        <copy todir="${build.dir}">
+            <fileset refid="website-files"/>
+        </copy>
+
+        <replace dir="${build.dir}">
+            <include name="**/*.html"/>
+            <replacetoken><![CDATA[</head>]]></replacetoken>
+            <replacevalue><![CDATA[<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-37333693-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script></head>]]></replacevalue>
+        </replace>
+
+        <ftp server="${ftp.server}"
+             userid="${ftp.user}"
+             password="${ftp.password}"
+             remotedir="${remote.dir}">
+            <fileset refid="build-website-files"/>
+        </ftp>
+    </target>
+
+</project>
